@@ -67,6 +67,8 @@ export default function Recorder() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
   const rafRef = useRef<number | null>(null);
+  /** Compositing display→canvas: source videos must not use `display:none` (Tailwind `hidden`) or Chrome often stops decoding and frames stay stuck on this tab. */
+  const screenVfcHandleRef = useRef<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const screenVideoRef = useRef<HTMLVideoElement | null>(null);
   const camVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -79,6 +81,11 @@ export default function Recorder() {
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
+    }
+    const screenV = screenVideoRef.current;
+    if (screenV != null && screenVfcHandleRef.current != null) {
+      screenV.cancelVideoFrameCallback(screenVfcHandleRef.current);
+      screenVfcHandleRef.current = null;
     }
     displayStreamRef.current?.getTracks().forEach((t) => t.stop());
     displayStreamRef.current = null;
@@ -176,7 +183,7 @@ export default function Recorder() {
         const pad = Math.round(camSize * 0.08);
         const bubbleR = camSize / 2;
 
-        const draw = () => {
+        const drawToCanvas = () => {
           const ctx = canvas.getContext("2d");
           if (!ctx) return;
           ctx.drawImage(screenV, 0, 0, canvas.width, canvas.height);
@@ -194,9 +201,25 @@ export default function Recorder() {
           ctx.strokeStyle = "rgba(255,255,255,0.9)";
           ctx.lineWidth = 4;
           ctx.stroke();
-          rafRef.current = requestAnimationFrame(draw);
         };
-        rafRef.current = requestAnimationFrame(draw);
+
+        const useVfc =
+          typeof screenV.requestVideoFrameCallback === "function" &&
+          typeof screenV.cancelVideoFrameCallback === "function";
+
+        if (useVfc) {
+          const onVideoFrame: VideoFrameRequestCallback = () => {
+            drawToCanvas();
+            screenVfcHandleRef.current = screenV.requestVideoFrameCallback(onVideoFrame);
+          };
+          screenVfcHandleRef.current = screenV.requestVideoFrameCallback(onVideoFrame);
+        } else {
+          const draw = () => {
+            drawToCanvas();
+            rafRef.current = requestAnimationFrame(draw);
+          };
+          rafRef.current = requestAnimationFrame(draw);
+        }
 
         const canvasStream = canvas.captureStream(30);
         const vt = canvasStream.getVideoTracks()[0];
@@ -365,8 +388,18 @@ export default function Recorder() {
         {includeWebcam && (
           <canvas ref={canvasRef} className="hidden" aria-hidden />
         )}
-        <video ref={screenVideoRef} className="hidden" muted playsInline />
-        <video ref={camVideoRef} className="hidden" muted playsInline />
+        <video
+          ref={screenVideoRef}
+          className="pointer-events-none fixed top-0 left-0 h-[2px] w-[2px] opacity-0"
+          muted
+          playsInline
+        />
+        <video
+          ref={camVideoRef}
+          className="pointer-events-none fixed top-0 left-0 h-[2px] w-[2px] opacity-0"
+          muted
+          playsInline
+        />
 
         {error && (
           <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
