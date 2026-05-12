@@ -4,6 +4,8 @@ import {
 } from "@/lib/supabase-server";
 import { NextResponse } from "next/server";
 
+export const runtime = 'edge';
+
 const BUCKET = "recordings";
 
 export async function DELETE(

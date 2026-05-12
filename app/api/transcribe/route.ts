@@ -2,6 +2,8 @@ import { createSupabaseServerClient, createSupabaseServiceClient } from "@/lib/s
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
+export const runtime = 'edge';
+
 export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
