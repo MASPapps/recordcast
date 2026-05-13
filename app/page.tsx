@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import { SignInGoogle } from "@/components/SignInGoogle";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import Link from "next/link";

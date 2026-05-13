@@ -1,3 +1,4 @@
+export const runtime = 'edge';
 import { WatchView } from "@/components/WatchView";
 import type { Recording } from "@/lib/database.types";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
