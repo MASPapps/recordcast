@@ -19,8 +19,8 @@ function formatDuration(seconds: number | null) {
 
 function formatDate(iso: string) {
   try {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: "medium",
+    return new Intl.DateTimeFormat("en-GB", {    
+        dateStyle: "medium",
       timeStyle: "short",
     }).format(new Date(iso));
   } catch {
